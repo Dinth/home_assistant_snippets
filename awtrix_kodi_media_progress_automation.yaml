@@ -1,0 +1,52 @@
+alias: Ulanzi Living Room Kodi
+description: Show Kodi progress on living room Ulanzi
+trigger:
+  - platform: state
+    entity_id: media_player.livingroom_htpc
+action:
+  - choose:
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: media_player.livingroom_htpc
+                state: playing
+              - condition: state
+                entity_id: media_player.livingroom_htpc
+                state: paused
+        sequence:
+          - service: mqtt.publish
+            data:
+              qos: 0
+              retain: false
+              payload: |-
+                {
+                  "text": "{% if state_attr('media_player.livingroom_htpc', 'media_content_type') == 'tvshow' %}{{ state_attr('media_player.livingroom_htpc', 'media_series_title') }} - {{ state_attr('media_player.livingroom_htpc', 'media_season') }}x{{ state_attr('media_player.livingroom_htpc', 'media_episode') }} - {{ state_attr('media_player.livingroom_htpc', 'media_title') }} {% elif state_attr('media_player.livingroom_htpc', 'media_content_type') == 'movie' %}{{ state_attr('media_player.livingroom_htpc', 'media_title') }}{% endif %}[{{(state_attr('media_player.livingroom_htpc', 'media_position') | int|timestamp_custom('%H:%M:%S'))}}/{{(state_attr('media_player.livingroom_htpc', 'media_duration') | int|timestamp_custom('%H:%M:%S'))}}]",
+                  "icon": "1405",
+                  "rainbow": false,
+                  "repeat": 2,
+                  "pushIcon": 0,
+                  "textCase": 0,
+                  "textOffset": 15,
+                  "progress": {{ ( states.media_player.livingroom_htpc.attributes.media_position / states.media_player.livingroom_htpc.attributes.media_duration * 100 ) | round() }},
+                  "progressC": "18B04C"
+                }
+              topic: awtrix_livingroom/custom/kodi
+      - conditions:
+          - condition: not
+            conditions:
+              - condition: or
+                conditions:
+                  - condition: state
+                    entity_id: media_player.livingroom_htpc
+                    state: paused
+                  - condition: state
+                    entity_id: media_player.livingroom_htpc
+                    state: playing
+        sequence:
+          - service: mqtt.publish
+            data:
+              qos: 0
+              retain: false
+              topic: awtrix_livingroom/custom/kodi
+condition: []
