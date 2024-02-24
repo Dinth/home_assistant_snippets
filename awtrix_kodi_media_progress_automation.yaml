@@ -1,9 +1,20 @@
 alias: Ulanzi Living Room Kodi
-description: Show Kodi progress on living room Ulanzi
+description: Show Kodi progress on living room Ulanzi - TBD
 trigger:
   - platform: state
     entity_id: media_player.livingroom_htpc
+condition: []
 action:
+  - service: mqtt.publish
+    data:
+      qos: 0
+      retain: false
+      topic: awtrix_livingroom/custom/kodi_title
+  - service: mqtt.publish
+    data:
+      qos: 0
+      retain: false
+      topic: awtrix_livingroom/custom/kodi_time
   - choose:
       - conditions:
           - condition: or
@@ -11,9 +22,6 @@ action:
               - condition: state
                 entity_id: media_player.livingroom_htpc
                 state: playing
-              - condition: state
-                entity_id: media_player.livingroom_htpc
-                state: paused
         sequence:
           - service: mqtt.publish
             data:
@@ -21,32 +29,108 @@ action:
               retain: false
               payload: |-
                 {
-                  "text": "{% if state_attr('media_player.livingroom_htpc', 'media_content_type') == 'tvshow' %}{{ state_attr('media_player.livingroom_htpc', 'media_series_title') }} - {{ state_attr('media_player.livingroom_htpc', 'media_season') }}x{{ state_attr('media_player.livingroom_htpc', 'media_episode') }} - {{ state_attr('media_player.livingroom_htpc', 'media_title') }} {% elif state_attr('media_player.livingroom_htpc', 'media_content_type') == 'movie' %}{{ state_attr('media_player.livingroom_htpc', 'media_title') }}{% endif %}[{{(state_attr('media_player.livingroom_htpc', 'media_position') | int|timestamp_custom('%H:%M:%S'))}}/{{(state_attr('media_player.livingroom_htpc', 'media_duration') | int|timestamp_custom('%H:%M:%S'))}}]",
+                  "text": "{% if state_attr('media_player.livingroom_htpc', 'media_content_type') == 'tvshow' %}{{ state_attr('media_player.livingroom_htpc', 'media_series_title') | slugify(separator=" ")}} - {{ state_attr('media_player.livingroom_htpc', 'media_season') }}x{{ state_attr('media_player.livingroom_htpc', 'media_episode') }} - {{ state_attr('media_player.livingroom_htpc', 'media_title') | slugify(separator=" ")}} {% elif state_attr('media_player.livingroom_htpc', 'media_content_type') == 'movie' %}{{ state_attr('media_player.livingroom_htpc', 'media_title') | slugify(separator=" ")}}{% endif %}",
                   "icon": "1405",
                   "rainbow": false,
-                  "repeat": 2,
+                  "repeat": 1,
                   "pushIcon": 0,
                   "textCase": 0,
-                  "textOffset": 15,
-                  "progress": {{ ( states.media_player.livingroom_htpc.attributes.media_position / states.media_player.livingroom_htpc.attributes.media_duration * 100 ) | round() }},
+                  "progress": {{ ( ((state_attr('media_player.livingroom_htpc', 'media_position') | int) + ( as_timestamp(now()) | int - as_timestamp(state_attr('media_player.livingroom_htpc','media_position_updated_at')) | int )) / states.media_player.livingroom_htpc.attributes.media_duration * 100 ) | round() }},
                   "progressC": "18B04C"
                 }
-              topic: awtrix_livingroom/custom/kodi
+              topic: awtrix_livingroom/custom/kodi_title
+          - service: mqtt.publish
+            data:
+              qos: 0
+              retain: false
+              payload: |-
+                {
+                  "text": "[{{(((state_attr('media_player.livingroom_htpc', 'media_position') | int) + ( as_timestamp(now()) | int - as_timestamp(state_attr('media_player.livingroom_htpc','media_position_updated_at')) | int )) | timestamp_custom('%H:%M:%S',false))}}/{{(state_attr('media_player.livingroom_htpc', 'media_duration') | int | timestamp_custom('%H:%M:%S',false))}}]",
+                  "icon": "1405",
+                  "rainbow": false,
+                  "repeat": 1,
+                  "pushIcon": 0,
+                  "textCase": 0,
+                  "progress": {{ ( ((state_attr('media_player.livingroom_htpc', 'media_position') | int) + ( as_timestamp(now()) | int - as_timestamp(state_attr('media_player.livingroom_htpc','media_position_updated_at')) | int )) / states.media_player.livingroom_htpc.attributes.media_duration * 100 ) | round() }},
+                  "progressC": "18B04C"
+                }
+              topic: awtrix_livingroom/custom/kodi_time
+          - repeat:
+              sequence:
+                - service: mqtt.publish
+                  data:
+                    qos: 0
+                    retain: false
+                    payload: |-
+                      {
+                        "text": "{% if state_attr('media_player.livingroom_htpc', 'media_content_type') == 'tvshow' %}{{ state_attr('media_player.livingroom_htpc', 'media_series_title') | slugify(separator=" ")}} - {{ state_attr('media_player.livingroom_htpc', 'media_season') }}x{{ state_attr('media_player.livingroom_htpc', 'media_episode') }} - {{ state_attr('media_player.livingroom_htpc', 'media_title') | slugify(separator=" ")}} {% elif state_attr('media_player.livingroom_htpc', 'media_content_type') == 'movie' %}{{ state_attr('media_player.livingroom_htpc', 'media_title') | slugify(separator=" ")}}{% endif %}",
+                        "icon": "1405",
+                        "rainbow": false,
+                        "repeat": 1,
+                        "pushIcon": 0,
+                        "textCase": 0,
+                        "progress": {{ ( ((state_attr('media_player.livingroom_htpc', 'media_position') | int) + ( as_timestamp(now()) | int - as_timestamp(state_attr('media_player.livingroom_htpc','media_position_updated_at')) | int )) / states.media_player.livingroom_htpc.attributes.media_duration * 100 ) | round() }},
+                        "progressC": "18B04C"
+                      }
+                    topic: awtrix_livingroom/custom/kodi_title
+                - service: mqtt.publish
+                  data:
+                    qos: 0
+                    retain: false
+                    payload: |-
+                      {
+                        "text": "[{{(((state_attr('media_player.livingroom_htpc', 'media_position') | int) + ( as_timestamp(now()) | int - as_timestamp(state_attr('media_player.livingroom_htpc','media_position_updated_at')) | int )) | timestamp_custom('%H:%M:%S',false))}}/{{(state_attr('media_player.livingroom_htpc', 'media_duration') | int | timestamp_custom('%H:%M:%S',false))}}]",
+                        "rainbow": false,
+                        "repeat": 1,
+                        "pushIcon": 0,
+                        "textCase": 0,
+                        "progress": {{ ( ((state_attr('media_player.livingroom_htpc', 'media_position') | int) + ( as_timestamp(now()) | int - as_timestamp(state_attr('media_player.livingroom_htpc','media_position_updated_at')) | int )) / states.media_player.livingroom_htpc.attributes.media_duration * 100 ) | round() }},
+                        "progressC": "18B04C"
+                      }
+                    topic: awtrix_livingroom/custom/kodi_time
+                - wait_for_trigger:
+                    - platform: state
+                      entity_id:
+                        - sensor.awtrix_a5e504_current_app
+                      to: Time
+              while:
+                - condition: state
+                  entity_id: media_player.livingroom_htpc
+                  state: playing
       - conditions:
-          - condition: not
-            conditions:
-              - condition: or
-                conditions:
-                  - condition: state
-                    entity_id: media_player.livingroom_htpc
-                    state: paused
-                  - condition: state
-                    entity_id: media_player.livingroom_htpc
-                    state: playing
+          - condition: state
+            entity_id: media_player.livingroom_htpc
+            state: paused
         sequence:
           - service: mqtt.publish
             data:
               qos: 0
               retain: false
-              topic: awtrix_livingroom/custom/kodi
-condition: []
+              payload: |-
+                {
+                  "text": "{% if state_attr('media_player.livingroom_htpc', 'media_content_type') == 'tvshow' %}{{ state_attr('media_player.livingroom_htpc', 'media_series_title') | slugify(separator=" ")}} - {{ state_attr('media_player.livingroom_htpc', 'media_season') }}x{{ state_attr('media_player.livingroom_htpc', 'media_episode') }} - {{ state_attr('media_player.livingroom_htpc', 'media_title') | slugify(separator=" ")}} {% elif state_attr('media_player.livingroom_htpc', 'media_content_type') == 'movie' %}{{ state_attr('media_player.livingroom_htpc', 'media_title') | slugify(separator=" ")}}{% endif %}",
+                  "icon": "1405",
+                  "rainbow": false,
+                  "repeat": 1,
+                  "pushIcon": 0,
+                  "textCase": 0,
+                  "progress": {{ ( ((state_attr('media_player.livingroom_htpc', 'media_position') | int) + ( as_timestamp(now()) | int - as_timestamp(state_attr('media_player.livingroom_htpc','media_position_updated_at')) | int )) / states.media_player.livingroom_htpc.attributes.media_duration * 100 ) | round() }},
+                  "progressC": "18B04C"
+                }
+              topic: awtrix_livingroom/custom/kodi_title
+          - service: mqtt.publish
+            data:
+              qos: 0
+              retain: false
+              payload: |-
+                {
+                  "text": "[{{(state_attr('media_player.livingroom_htpc', 'media_position') | int|timestamp_custom('%H:%M:%S',false))}}/{{(state_attr('media_player.livingroom_htpc', 'media_duration') | int|timestamp_custom('%H:%M:%S',false))}}]",
+                  "icon": "1405",
+                  "rainbow": false,
+                  "repeat": 1,
+                  "pushIcon": 0,
+                  "textCase": 0,
+                  "progress": {{ ( ((state_attr('media_player.livingroom_htpc', 'media_position') | int) + ( as_timestamp(now()) | int - as_timestamp(state_attr('media_player.livingroom_htpc','media_position_updated_at')) | int )) / states.media_player.livingroom_htpc.attributes.media_duration * 100 ) | round() }},
+                  "progressC": "18B04C"
+                }
+              topic: awtrix_livingroom/custom/kodi_time
